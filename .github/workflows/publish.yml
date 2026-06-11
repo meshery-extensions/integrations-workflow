@@ -3,8 +3,7 @@ name: Publish Meshery Integrations
 # Builds mesheryctl from the caller, then publishes integration content into:
 #   - meshery.io      (integrations site)
 #   - meshery docs    (in-tree docs in meshery/meshery)
-#   - layer5io/layer5 (Layer5 website integration pages)
-#   - layer5io/meshery-cloud (model registry for the remote provider)
+#   - all subscribed ecosystem partenrs
 #
 # Service account: meshery-integrations-sheet@meshery-237716.iam.gserviceaccount.com
 # Setup: https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication
