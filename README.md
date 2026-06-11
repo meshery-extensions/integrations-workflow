@@ -34,8 +34,7 @@ The workflow checks out and pushes integration documentation to:
 
 - [`meshery/meshery.io`](https://github.com/meshery/meshery.io) - Meshery's product site
 - [`meshery/meshery`](https://github.com/meshery/meshery) - Meshery docs (in-tree)
-- `layer5io/layer5` - Layer5's website integration pages
-- `layer5io/meshery-cloud` - model registry for the remote provider
+- _all subscribed ecosystem partners_
 
 ## License
 
