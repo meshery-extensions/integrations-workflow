@@ -1,4 +1,4 @@
-name: Publish Meshery Integrations: Single Provider
+name: Publish Meshery Integrations - Single Provider
 # Reusable workflow called by meshery/meshery on schedule and demand.
 # Builds mesheryctl from the caller, then publishes integration content into:
 #   - meshery.io      (integrations site)
