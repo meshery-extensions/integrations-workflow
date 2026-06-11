@@ -1,0 +1,82 @@
+name: Publish Meshery Integrations
+# Reusable workflow called by meshery/meshery on schedule and demand.
+# Builds mesheryctl from the caller, then publishes integration content into:
+#   - meshery.io      (integrations site)
+#   - meshery docs    (in-tree docs in meshery/meshery)
+#   - all subscribed ecosystem partenrs
+#
+# Service account: meshery-integrations-sheet@meshery-237716.iam.gserviceaccount.com
+# Setup: https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication
+
+on:
+  workflow_call:
+    secrets:
+      MESHERY_CI:
+        description: PAT with push access to the publish targets
+        required: true
+      INTEGRATION_SPREADSHEET_CRED:
+        description: Service-account JSON for the integrations spreadsheet
+        required: true
+      MAIL_USERNAME:
+        description: SMTP username for failure notifications
+        required: true
+      MAIL_PASSWORD:
+        description: SMTP password for failure notifications
+        required: true
+
+jobs:
+  integrations:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Meshery repo
+        uses: actions/checkout@master
+        with:
+          repository: meshery/meshery
+          path: meshery
+          token: ${{ secrets.MESHERY_CI }}
+
+      - name: Checkout TCS Labs Remote Provider repo
+        uses: actions/checkout@master
+        with:
+          repository: tata-consulting/meshery-remote-provider
+          token: ${{ secrets.MESHERY_CI }}
+          path: meshery-remote-provider
+
+      - name: Build mesheryctl
+        working-directory: ./meshery/mesheryctl
+        run: make;
+
+      - name: Publish to TCS Labs Remote Provider
+        working-directory: ./meshery/mesheryctl
+        run: ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-remote-provider/server/meshmodels/models ../meshery-remote-provider/ui/public/img/meshmodels
+
+      - name: Pull latest changes from TCS Labs Meshery Remote Provider repo
+        working-directory: ./meshery-remote-provider
+        run: git pull origin master
+
+      - name: Commit changes to TCS Labs Remote Provider repo
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_user_name: meshery-ci
+          repository: ./meshery-remote-provider
+          commit_user_email: ci@meshery.io
+          commit_author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          commit_options: "--signoff"
+          commit_message: "Models Updated"
+          branch: master
+
+      - name: Send Email on Model Publish Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v7
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: GitHub Actions - Workflow Failure
+          from: |
+            "Model Updater" <no-reply@meshery.io>
+          to: support@tata-consulting.co.uk
+          body: |
+            The GitHub Actions workflow in ${{ github.repository }} has failed.
+            You can find more details in the GitHub Actions log ${{ github.workflow }}.
