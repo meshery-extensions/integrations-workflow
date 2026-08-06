@@ -1,4 +1,5 @@
 # integrations-workflow
+[![support: official](https://img.shields.io/badge/support-official-2f6feb)](https://github.com/meshery/meshery/blob/master/GOVERNANCE.md#extensions-githubcommeshery-extensions)
 
 Hosts the reusable GitHub Actions workflow that publishes Meshery's integration content
 to its downstream sites and registries.
