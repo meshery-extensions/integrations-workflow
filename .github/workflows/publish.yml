@@ -3,7 +3,7 @@ name: Publish Meshery Integrations
 # Builds mesheryctl from the caller, then publishes integration content into:
 #   - meshery.io      (integrations site)
 #   - meshery docs    (in-tree docs in meshery/meshery)
-#   - all subscribed ecosystem partenrs
+#   - all subscribed ecosystem partners
 #
 # Service account: meshery-integrations-sheet@meshery-237716.iam.gserviceaccount.com
 # Setup: https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication
@@ -29,54 +29,71 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Meshery repo
-        uses: actions/checkout@master
+        id: checkout-meshery
+        uses: actions/checkout@v6
         with:
           repository: meshery/meshery
           path: meshery
           token: ${{ secrets.MESHERY_CI }}
 
       - name: Checkout Layer5 website repo
-        uses: actions/checkout@master
+        id: checkout-layer5
+        uses: actions/checkout@v6
         with:
           repository: layer5io/layer5
           token: ${{ secrets.MESHERY_CI }}
           path: l5
 
       - name: Checkout Meshery.io repo
-        uses: actions/checkout@master
+        id: checkout-meshery-io
+        uses: actions/checkout@v6
         with:
           repository: meshery/meshery.io
           token: ${{ secrets.MESHERY_CI }}
           path: meshery.io
 
       - name: Checkout Remote Provider repo
-        uses: actions/checkout@master
+        id: checkout-remote-provider
+        uses: actions/checkout@v6
         with:
           repository: layer5io/meshery-cloud
           token: ${{ secrets.MESHERY_CI }}
           path: meshery-cloud
 
       - name: Checkout TCS Labs Remote Provider repo
-        uses: actions/checkout@master
+        id: checkout-tcs-remote-provider
+        uses: actions/checkout@v6
         with:
           repository: tata-consulting/meshery-remote-provider
           token: ${{ secrets.MESHERY_CI }}
           path: meshery-remote-provider
 
+      - name: Setup Go
+        id: setup-go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: meshery/go.mod
+          cache-dependency-path: meshery/go.sum
+
       - name: Build mesheryctl
+        id: build-mesheryctl
         working-directory: ./meshery/mesheryctl
-        run: make;
+        run: make 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: Publish to meshery.io site
+        id: publish-meshery-io
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../../meshery.io/integrations ../meshery.io/assets/images/integration -o js
+        run: |
+          ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../../meshery.io/integrations ../meshery.io/assets/images/integration -o js 2>&1 | tee "$RUNNER_TEMP/publish-meshery-io.log"
 
       - name: Clean paths in data.js
+        id: clean-data-js
         working-directory: ./meshery.io/integrations
         run: |
           sed -i 's|"meshery\.io/|"/|g' data.js
 
       - name: Build and inject OCI files to custom models in catalog
+        id: build-oci
         working-directory: ./meshery/mesheryctl
         run: |
           set -euo pipefail
@@ -116,10 +133,12 @@ jobs:
           done
 
       - name: Pull latest changes from Meshery.io repo
+        id: pull-meshery-io
         working-directory: ./meshery.io
         run: git pull origin master
 
       - name: Commit changes to Meshery.io repo
+        id: commit-meshery-io
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: meshery-ci
@@ -131,14 +150,18 @@ jobs:
           branch: master
 
       - name: Publish to ecosystem partner website
+        id: publish-partner
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../layer5/src/collections/integrations ../layer5/src/collections/integrations -o mdx
+        run: |
+          ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../layer5/src/collections/integrations ../layer5/src/collections/integrations -o mdx 2>&1 | tee "$RUNNER_TEMP/publish-partner.log"
 
       - name: Pull latest changes from ecosystem partner website repo
+        id: pull-partner
         working-directory: ./l5
         run: git pull origin master
 
       - name: Commit changes to ecosystem partner website repo
+        id: commit-partner
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -150,14 +173,18 @@ jobs:
           branch: master
 
       - name: Publish to Meshery docs
+        id: publish-docs
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw  docs/content/en/extensions/models docs/content/en/extensions/models -o md
+        run: |
+          ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw docs/content/en/extensions/models docs/content/en/extensions/models -o md 2>&1 | tee "$RUNNER_TEMP/publish-docs.log"
 
       - name: Pull latest changes from Meshery repo
+        id: pull-meshery
         working-directory: ./meshery
         run: git pull origin master
 
       - name: Commit changes to Meshery repo
+        id: commit-meshery
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -169,14 +196,18 @@ jobs:
           branch: master
 
       - name: Publish to Meshery Remote Provider
+        id: publish-remote-provider
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-cloud/server/meshmodels/models ../meshery-cloud/ui/public/img/meshmodels
+        run: |
+          ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-cloud/server/meshmodels/models ../meshery-cloud/ui/public/img/meshmodels 2>&1 | tee "$RUNNER_TEMP/publish-cloud.log"
 
       - name: Pull latest changes from Meshery Remote Provider repo
+        id: pull-remote-provider
         working-directory: ./meshery-cloud
         run: git pull origin master
 
       - name: Commit changes to Meshery Remote Provider repo
+        id: commit-remote-provider
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -188,14 +219,18 @@ jobs:
           branch: master
 
       - name: Publish to TCS Labs Remote Provider
+        id: publish-tcs-remote-provider
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-remote-provider/server/models ../meshery-remote-provider/ui/public/models
+        run: |
+          ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-remote-provider/server/models ../meshery-remote-provider/ui/public/models 2>&1 | tee "$RUNNER_TEMP/publish-tcs.log"
 
       - name: Pull latest changes from TCS Labs Meshery Remote Provider repo
+        id: pull-tcs-remote-provider
         working-directory: ./meshery-remote-provider
         run: git pull origin master
 
       - name: Commit changes to TCS Labs Remote Provider repo
+        id: commit-tcs-remote-provider
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: meshery-ci
@@ -206,18 +241,109 @@ jobs:
           commit_message: "Models Updated"
           branch: master
 
-      # - name: Send Email on Model Publish Failure
-      #   if: failure()
-      #   uses: dawidd6/action-send-mail@v7
-      #   with:
-      #     server_address: smtp.gmail.com
-      #     server_port: 465
-      #     username: ${{ secrets.MAIL_USERNAME }}
-      #     password: ${{ secrets.MAIL_PASSWORD }}
-      #     subject: GitHub Actions - Workflow Failure
-      #     from: |
-      #       "Model Updater" <no-reply@meshery.io>
-      #     to: developers@meshery.io
-      #     body: |
-      #       The GitHub Actions workflow in ${{ github.repository }} has failed.
-      #       You can find more details in the GitHub Actions log ${{ github.workflow }}.
+      - name: Prepare Failure Details
+        if: failure()
+        id: failure-details
+        run: |
+          FAILED_STAGE="an unidentified stage"
+          CATEGORY="CI Infrastructure"
+          LOG_FILE=""
+
+          if [ "${{ steps.checkout-meshery.outcome }}" = "failure" ] || \
+             [ "${{ steps.checkout-layer5.outcome }}" = "failure" ] || \
+             [ "${{ steps.checkout-meshery-io.outcome }}" = "failure" ] || \
+             [ "${{ steps.checkout-remote-provider.outcome }}" = "failure" ] || \
+             [ "${{ steps.checkout-tcs-remote-provider.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Repository Checkout"
+            CATEGORY="Git Checkout"
+          elif [ "${{ steps.setup-go.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Setup Go"
+            CATEGORY="Environment Setup"
+          elif [ "${{ steps.build-mesheryctl.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Build mesheryctl"
+            CATEGORY="Mesheryctl Build"
+            LOG_FILE="$RUNNER_TEMP/build.log"
+          elif [ "${{ steps.publish-meshery-io.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Publish to meshery.io site"
+            CATEGORY="Catalog Publish"
+            LOG_FILE="$RUNNER_TEMP/publish-meshery-io.log"
+          elif [ "${{ steps.clean-data-js.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Clean paths in data.js"
+            CATEGORY="Data Processing"
+          elif [ "${{ steps.build-oci.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Build and inject OCI files"
+            CATEGORY="OCI Packaging"
+          elif [ "${{ steps.pull-meshery-io.outcome }}" = "failure" ] || \
+               [ "${{ steps.pull-partner.outcome }}" = "failure" ] || \
+               [ "${{ steps.pull-meshery.outcome }}" = "failure" ] || \
+               [ "${{ steps.pull-remote-provider.outcome }}" = "failure" ] || \
+               [ "${{ steps.pull-tcs-remote-provider.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Git Pull Sync"
+            CATEGORY="Git Synchronization"
+          elif [ "${{ steps.commit-meshery-io.outcome }}" = "failure" ] || \
+               [ "${{ steps.commit-partner.outcome }}" = "failure" ] || \
+               [ "${{ steps.commit-meshery.outcome }}" = "failure" ] || \
+               [ "${{ steps.commit-remote-provider.outcome }}" = "failure" ] || \
+               [ "${{ steps.commit-tcs-remote-provider.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Git Commit"
+            CATEGORY="Git Commit"
+          elif [ "${{ steps.publish-partner.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Publish to ecosystem partner website"
+            CATEGORY="Partner Publish"
+            LOG_FILE="$RUNNER_TEMP/publish-partner.log"
+          elif [ "${{ steps.publish-docs.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Publish to Meshery docs"
+            CATEGORY="Docs Publish"
+            LOG_FILE="$RUNNER_TEMP/publish-docs.log"
+          elif [ "${{ steps.publish-remote-provider.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Publish to Meshery Remote Provider"
+            CATEGORY="Remote Provider Publish"
+            LOG_FILE="$RUNNER_TEMP/publish-cloud.log"
+          elif [ "${{ steps.publish-tcs-remote-provider.outcome }}" = "failure" ]; then
+            FAILED_STAGE="Publish to TCS Labs Remote Provider"
+            CATEGORY="Remote Provider Publish"
+            LOG_FILE="$RUNNER_TEMP/publish-tcs.log"
+          fi
+
+          {
+            echo "The Publish Meshery Integrations workflow failed at stage: ${FAILED_STAGE} [Category: ${CATEGORY}]."
+            echo ""
+            echo "Failed Run : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
+            echo "Trigger    : ${{ github.event_name }}"
+            echo ""
+            if [ -n "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
+              echo "Raw Error Output (last 50 lines):"
+              echo "--------------------------------------------------"
+              tail -n 50 "$LOG_FILE" | tr -d '\r' | sed 's/\x1b\[[0-9;]*m//g'
+              echo "--------------------------------------------------"
+            else
+              echo "No local command output captured for this stage. Please refer to the run link above for full step logs."
+            fi
+          } > "$RUNNER_TEMP/failure-email.txt"
+
+          cat "$RUNNER_TEMP/failure-email.txt" >> "$GITHUB_STEP_SUMMARY"
+
+          ATTACHMENT=""
+          if [ -n "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
+            ATTACHMENT="$LOG_FILE"
+          fi
+
+          echo "stage=$FAILED_STAGE" >> "$GITHUB_OUTPUT"
+          echo "category=$CATEGORY" >> "$GITHUB_OUTPUT"
+          echo "attachment=$ATTACHMENT" >> "$GITHUB_OUTPUT"
+
+      - name: Send Email on Model Publish Failure
+        if: failure()
+        continue-on-error: true
+        uses: dawidd6/action-send-mail@v7
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[${{ github.repository }}] ${{ github.workflow }} — ${{ steps.failure-details.outputs.stage || 'unknown stage' }} failed (run #${{ github.run_number }})"
+          from: |
+            "Meshery Integrations Updater" <no-reply@meshery.io>
+          to: developers@meshery.io
+          body: file://${{ runner.temp }}/failure-email.txt
+          attachments: ${{ steps.failure-details.outputs.attachment }}
