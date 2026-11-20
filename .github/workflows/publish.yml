@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Checkout Meshery repo
         id: checkout-meshery
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: meshery/meshery
           path: meshery
@@ -38,7 +38,7 @@ jobs:
 
       - name: Checkout Layer5 website repo
         id: checkout-layer5
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: layer5io/layer5
           token: ${{ secrets.MESHERY_CI }}
@@ -46,7 +46,7 @@ jobs:
 
       - name: Checkout Meshery.io repo
         id: checkout-meshery-io
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: meshery/meshery.io
           token: ${{ secrets.MESHERY_CI }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Checkout Remote Provider repo
         id: checkout-remote-provider
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: layer5io/meshery-cloud
           token: ${{ secrets.MESHERY_CI }}
@@ -62,7 +62,7 @@ jobs:
 
       - name: Checkout TCS Labs Remote Provider repo
         id: checkout-tcs-remote-provider
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: tata-consulting/meshery-remote-provider
           token: ${{ secrets.MESHERY_CI }}
@@ -70,7 +70,7 @@ jobs:
 
       - name: Setup Go
         id: setup-go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: meshery/go.mod
           cache-dependency-path: meshery/go.sum
@@ -335,7 +335,7 @@ jobs:
       - name: Send Email on Model Publish Failure
         if: failure()
         continue-on-error: true
-        uses: dawidd6/action-send-mail@v7
+        uses: dawidd6/action-send-mail@v24
         with:
           server_address: smtp.gmail.com
           server_port: 465
