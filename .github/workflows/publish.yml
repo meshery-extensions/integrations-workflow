@@ -311,14 +311,7 @@ jobs:
             echo "Failed Run : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
             echo "Trigger    : ${{ github.event_name }}"
             echo ""
-            if [ -n "$LOG_FILE" ] && [ -s "$LOG_FILE" ]; then
-              echo "Raw Error Output (last 50 lines):"
-              echo "--------------------------------------------------"
-              tail -n 50 "$LOG_FILE" | tr -d '\r' | sed 's/\x1b\[[0-9;]*m//g'
-              echo "--------------------------------------------------"
-            else
-              echo "No local command output captured for this stage. Please refer to the run link above for full step logs."
-            fi
+            echo "Please refer to the run link above and the attached log file for full error details."
           } > "$RUNNER_TEMP/failure-email.txt"
 
           cat "$RUNNER_TEMP/failure-email.txt" >> "$GITHUB_STEP_SUMMARY"
