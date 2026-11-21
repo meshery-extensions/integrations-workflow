@@ -35,14 +35,14 @@ jobs:
         with:
           repository: meshery/meshery
           path: meshery
-          token: ${{ secrets.MESHERY_CI }}
+          token: ${{ secrets.MESHERY_CI || github.token }}
 
       - name: Checkout Layer5 website repo
         id: checkout-layer5
         uses: actions/checkout@v7
         with:
           repository: layer5io/layer5
-          token: ${{ secrets.MESHERY_CI }}
+          token: ${{ secrets.MESHERY_CI || github.token }}
           path: l5
 
       - name: Checkout Meshery.io repo
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: meshery/meshery.io
-          token: ${{ secrets.MESHERY_CI }}
+          token: ${{ secrets.MESHERY_CI || github.token }}
           path: meshery.io
 
       - name: Checkout Remote Provider repo
@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: layer5io/meshery-cloud
-          token: ${{ secrets.MESHERY_CI }}
+          token: ${{ secrets.MESHERY_CI || github.token }}
           path: meshery-cloud
 
       - name: Checkout TCS Labs Remote Provider repo
@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: tata-consulting/meshery-remote-provider
-          token: ${{ secrets.MESHERY_CI }}
+          token: ${{ secrets.MESHERY_CI || github.token }}
           path: meshery-remote-provider
 
       - name: Setup Go
