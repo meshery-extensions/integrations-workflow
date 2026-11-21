@@ -23,14 +23,10 @@ on:
       MAIL_PASSWORD:
         description: SMTP password for failure notifications
         required: true
-  workflow_dispatch:
 
 jobs:
   integrations:
     runs-on: ubuntu-24.04
-    env:
-      MESHERY_CI: ${{ secrets.MESHERY_CI }}
-      INTEGRATION_SPREADSHEET_CRED: ${{ secrets.INTEGRATION_SPREADSHEET_CRED }}
     steps:
       - name: Checkout Meshery repo
         id: checkout-meshery
@@ -38,14 +34,14 @@ jobs:
         with:
           repository: meshery/meshery
           path: meshery
-          token: ${{ secrets.MESHERY_CI || github.token }}
+          token: ${{ secrets.MESHERY_CI }}
 
       - name: Checkout Layer5 website repo
         id: checkout-layer5
         uses: actions/checkout@v7
         with:
           repository: layer5io/layer5
-          token: ${{ secrets.MESHERY_CI || github.token }}
+          token: ${{ secrets.MESHERY_CI }}
           path: l5
 
       - name: Checkout Meshery.io repo
@@ -53,12 +49,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: meshery/meshery.io
-          token: ${{ secrets.MESHERY_CI || github.token }}
+          token: ${{ secrets.MESHERY_CI }}
           path: meshery.io
 
       - name: Checkout Remote Provider repo
         id: checkout-remote-provider
-        if: env.MESHERY_CI != ''
         uses: actions/checkout@v7
         with:
           repository: layer5io/meshery-cloud
@@ -67,7 +62,6 @@ jobs:
 
       - name: Checkout TCS Labs Remote Provider repo
         id: checkout-tcs-remote-provider
-        if: env.MESHERY_CI != ''
         uses: actions/checkout@v7
         with:
           repository: tata-consulting/meshery-remote-provider
@@ -88,21 +82,18 @@ jobs:
 
       - name: Publish to meshery.io site
         id: publish-meshery-io
-        if: env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../../meshery.io/integrations ../meshery.io/assets/images/integration -o js 2>&1 | tee "$RUNNER_TEMP/publish-meshery-io.log"
 
       - name: Clean paths in data.js
         id: clean-data-js
-        if: env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery.io/integrations
         run: |
           sed -i 's|"meshery\.io/|"/|g' data.js
 
       - name: Build and inject OCI files to custom models in catalog
         id: build-oci
-        if: env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           set -euo pipefail
@@ -143,13 +134,11 @@ jobs:
 
       - name: Pull latest changes from Meshery.io repo
         id: pull-meshery-io
-        if: env.MESHERY_CI != ''
         working-directory: ./meshery.io
         run: git pull origin master
 
       - name: Commit changes to Meshery.io repo
         id: commit-meshery-io
-        if: env.MESHERY_CI != ''
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: meshery-ci
@@ -162,20 +151,17 @@ jobs:
 
       - name: Publish to ecosystem partner website
         id: publish-partner
-        if: env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../layer5/src/collections/integrations ../layer5/src/collections/integrations -o mdx 2>&1 | tee "$RUNNER_TEMP/publish-partner.log"
 
       - name: Pull latest changes from ecosystem partner website repo
         id: pull-partner
-        if: env.MESHERY_CI != ''
         working-directory: ./l5
         run: git pull origin master
 
       - name: Commit changes to ecosystem partner website repo
         id: commit-partner
-        if: env.MESHERY_CI != ''
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -188,20 +174,17 @@ jobs:
 
       - name: Publish to Meshery docs
         id: publish-docs
-        if: env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw docs/content/en/extensions/models docs/content/en/extensions/models -o md 2>&1 | tee "$RUNNER_TEMP/publish-docs.log"
 
       - name: Pull latest changes from Meshery repo
         id: pull-meshery
-        if: env.MESHERY_CI != ''
         working-directory: ./meshery
         run: git pull origin master
 
       - name: Commit changes to Meshery repo
         id: commit-meshery
-        if: env.MESHERY_CI != ''
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -214,20 +197,17 @@ jobs:
 
       - name: Publish to Meshery Remote Provider
         id: publish-remote-provider
-        if: env.MESHERY_CI != '' && env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-cloud/server/meshmodels/models ../meshery-cloud/ui/public/img/meshmodels 2>&1 | tee "$RUNNER_TEMP/publish-cloud.log"
 
       - name: Pull latest changes from Meshery Remote Provider repo
         id: pull-remote-provider
-        if: env.MESHERY_CI != ''
         working-directory: ./meshery-cloud
         run: git pull origin master
 
       - name: Commit changes to Meshery Remote Provider repo
         id: commit-remote-provider
-        if: env.MESHERY_CI != ''
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: l5io
@@ -240,20 +220,17 @@ jobs:
 
       - name: Publish to TCS Labs Remote Provider
         id: publish-tcs-remote-provider
-        if: env.MESHERY_CI != '' && env.INTEGRATION_SPREADSHEET_CRED != ''
         working-directory: ./meshery/mesheryctl
         run: |
           ./mesheryctl registry publish remote-provider ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw ../meshery-remote-provider/server/models ../meshery-remote-provider/ui/public/models 2>&1 | tee "$RUNNER_TEMP/publish-tcs.log"
 
       - name: Pull latest changes from TCS Labs Meshery Remote Provider repo
         id: pull-tcs-remote-provider
-        if: env.MESHERY_CI != ''
         working-directory: ./meshery-remote-provider
         run: git pull origin master
 
       - name: Commit changes to TCS Labs Remote Provider repo
         id: commit-tcs-remote-provider
-        if: env.MESHERY_CI != ''
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_user_name: meshery-ci
