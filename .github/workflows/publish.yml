@@ -23,6 +23,7 @@ on:
       MAIL_PASSWORD:
         description: SMTP password for failure notifications
         required: true
+  workflow_dispatch:
 
 jobs:
   integrations:
