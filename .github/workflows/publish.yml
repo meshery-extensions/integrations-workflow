@@ -3,7 +3,7 @@ name: Publish Meshery Integrations
 # Builds mesheryctl from the caller, then publishes integration content into:
 #   - meshery.io      (integrations site)
 #   - meshery docs    (in-tree docs in meshery/meshery)
-#   - all subscribed ecosystem partenrs
+#   - all subscribed ecosystem partners
 #
 # Service account: meshery-integrations-sheet@meshery-237716.iam.gserviceaccount.com
 # Setup: https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication
@@ -29,39 +29,45 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Meshery repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v7
         with:
           repository: meshery/meshery
           path: meshery
           token: ${{ secrets.MESHERY_CI }}
 
       - name: Checkout Layer5 website repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v7
         with:
           repository: layer5io/layer5
           token: ${{ secrets.MESHERY_CI }}
           path: l5
 
       - name: Checkout Meshery.io repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v7
         with:
           repository: meshery/meshery.io
           token: ${{ secrets.MESHERY_CI }}
           path: meshery.io
 
       - name: Checkout Remote Provider repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v7
         with:
           repository: layer5io/meshery-cloud
           token: ${{ secrets.MESHERY_CI }}
           path: meshery-cloud
 
       - name: Checkout TCS Labs Remote Provider repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v7
         with:
           repository: tata-consulting/meshery-remote-provider
           token: ${{ secrets.MESHERY_CI }}
           path: meshery-remote-provider
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: meshery/go.mod
+          cache-dependency-path: meshery/go.sum
 
       - name: Build mesheryctl
         working-directory: ./meshery/mesheryctl
@@ -151,7 +157,7 @@ jobs:
 
       - name: Publish to Meshery docs
         working-directory: ./meshery/mesheryctl
-        run: ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw  docs/content/en/extensions/models docs/content/en/extensions/models -o md
+        run: ./mesheryctl registry publish website ${{ secrets.INTEGRATION_SPREADSHEET_CRED }} 1DZHnzxYWOlJ69Oguz4LkRVTFM79kC2tuvdwizOJmeMw docs/content/en/extensions/models docs/content/en/extensions/models -o md
 
       - name: Pull latest changes from Meshery repo
         working-directory: ./meshery
@@ -206,18 +212,24 @@ jobs:
           commit_message: "Models Updated"
           branch: master
 
-      # - name: Send Email on Model Publish Failure
-      #   if: failure()
-      #   uses: dawidd6/action-send-mail@v7
-      #   with:
-      #     server_address: smtp.gmail.com
-      #     server_port: 465
-      #     username: ${{ secrets.MAIL_USERNAME }}
-      #     password: ${{ secrets.MAIL_PASSWORD }}
-      #     subject: GitHub Actions - Workflow Failure
-      #     from: |
-      #       "Model Updater" <no-reply@meshery.io>
-      #     to: developers@meshery.io
-      #     body: |
-      #       The GitHub Actions workflow in ${{ github.repository }} has failed.
-      #       You can find more details in the GitHub Actions log ${{ github.workflow }}.
+      - name: Send Email on Model Publish Failure
+        if: failure()
+        continue-on-error: true
+        uses: dawidd6/action-send-mail@v24
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "[${{ github.repository }}] ${{ github.workflow }} failed (run #${{ github.run_number }})"
+          from: |
+            "Meshery Integrations Updater" <no-reply@meshery.io>
+          to: developers@meshery.io
+          body: |
+            The GitHub Actions workflow ${{ github.workflow }} in ${{ github.repository }} has failed.
+
+            Run URL : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Trigger : ${{ github.event_name }}
+            Commit  : ${{ github.sha }}
+
+            Please refer to the run link above for step-by-step logs and failure details.
